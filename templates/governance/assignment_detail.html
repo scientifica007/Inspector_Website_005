@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ assignment.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ assignment.title }}</h1>
+    <p class="page-sub">
+      الزيارة: <a href="{% url 'visits:detail' assignment.visit.pk %}">{{ assignment.visit.title }}</a>
+      — المفتش: {{ assignment.visit.inspector }} —
+      {% if assignment.status == 'DRAFT' %}<span class="badge badge-draft">مسودة إدارية</span>
+      {% elif assignment.status == 'ISSUED' %}<span class="badge badge-ok">صادر</span>
+      {% else %}<span class="badge badge-danger">ملغى</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if assignment.status == 'DRAFT' %}
+      <form method="post" action="{% url 'governance:assignment_issue' assignment.pk %}" class="inline-form" data-confirm="إصدار التكليف؟ سيصبح سجلًا رسميًا ظاهرًا للمفتش.">{% csrf_token %}
+        <button class="btn btn-ok" type="submit">إصدار التكليف</button>
+      </form>
+    {% elif assignment.status == 'ISSUED' and assignment.visit.is_draft %}
+      <a class="btn btn-danger" href="{% url 'governance:assignment_revoke' assignment.pk %}">إلغاء التكليف</a>
+    {% endif %}
+    <a class="btn btn-quiet" href="{% url 'governance:assignment_list' %}">رجوع</a>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <strong>الفارق الجوهري:</strong> التكليف أمر رسمي، بخلاف الدليل الذي هو اقتراح.
+  كل بند يستهدف عنصرًا داخل اللقطة المجمّدة، ويمكن أن يفرض <em>قيد نطاق</em> أو <em>متطلب إتمام</em> أو كليهما،
+  وهما مستقلان. العنصر الذي دخل النطاق سابقًا بسبب اختيار يدوي أو دليل لا يتغير مصدره؛ يضاف الالتزام فقط.
+</div>
+
+<div class="card">
+  <h2>بيانات التكليف</h2>
+  <dl class="meta">
+    <dt>نص التكليف</dt><dd>{{ assignment.instruction|default:"—" }}</dd>
+    <dt>أنشأه</dt><dd>{{ assignment.created_by }} في {{ assignment.created_at|ardatetime }}</dd>
+    {% if assignment.issued_at %}
+      <dt>أصدره</dt><dd>{{ assignment.issued_by }} في {{ assignment.issued_at|ardatetime }}</dd>
+    {% endif %}
+    {% if assignment.revoked_at %}
+      <dt>ألغاه</dt><dd>{{ assignment.revoked_by }} في {{ assignment.revoked_at|ardatetime }}</dd>
+      <dt>سبب الإلغاء</dt><dd>{{ assignment.revoke_reason }}</dd>
+    {% endif %}
+  </dl>
+</div>
+
+<div class="card">
+  <h2>بنود التكليف ({{ entries|length }})</h2>
+  {% if entries %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>العنصر</th><th>النوع</th><th>قيد النطاق</th><th>متطلب إتمام</th><th>ملاحظة</th><th></th></tr></thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td><span class="tree-code">{{ entry.target_node.code }}</span> — {{ entry.target_node.title }}</td>
+          <td>{{ entry.target_node.node_type|node_type_label }}</td>
+          <td>{% if entry.scope_locked %}<span class="badge badge-ok">نعم</span>{% else %}—{% endif %}</td>
+          <td>{% if entry.completion_required %}<span class="badge badge-warn">نعم</span>{% else %}—{% endif %}</td>
+          <td>{{ entry.note|default:"—" }}</td>
+          <td>
+            {% if assignment.status == 'DRAFT' %}
+            <form method="post" action="{% url 'governance:assignment_entry_remove' assignment.pk entry.pk %}" class="inline-form">{% csrf_token %}
+              <button class="btn btn-quiet btn-sm" type="submit">إزالة</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">لا بنود بعد. لا يمكن إصدار تكليف بدون بنود.</div>
+  {% endif %}
+</div>
+
+{% if assignment.status == 'DRAFT' %}
+<div class="card">
+  <h2>إضافة بند</h2>
+  <p class="text-soft">
+    بالنسبة إلى فرع: يُطبَّق القيد على الفرع وشجرته الفرعية معًا حتى لا يمكن الالتفاف حوله.
+    متطلب الإتمام يُطبَّق فعليًا على العناصر القابلة للإنجاز، لا على عقدة هيكلية فارغة.
+  </p>
+  <form method="post" action="{% url 'governance:assignment_entry_add' assignment.pk %}" novalidate>
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.target_node.id_for_label }}">{{ form.target_node.label }}</label>
+      {{ form.target_node }}
+    </div>
+    <div class="form-row checkbox-row">
+      {{ form.scope_locked }}
+      <label for="{{ form.scope_locked.id_for_label }}">{{ form.scope_locked.label }}</label>
+    </div>
+    <div class="form-row checkbox-row">
+      {{ form.completion_required }}
+      <label for="{{ form.completion_required.id_for_label }}">{{ form.completion_required.label }}</label>
+    </div>
+    <div class="form-row">
+      <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+      {{ form.note }}
+    </div>
+    <div class="form-actions"><button class="btn" type="submit">إضافة البند</button></div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>القيود السارية على الزيارة الآن</h2>
+  <div class="grid grid-2">
+    <div>
+      <h3>قيد النطاق</h3>
+      {% if constraints.scope_locked_ids %}
+        <p class="text-soft">{{ constraints.scope_locked_ids|length }} عنصرًا مقيدًا (شامل الشجرة الفرعية).</p>
+      {% else %}
+        <p class="text-muted">لا قيود نطاق.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3>متطلبات الإتمام</h3>
+      {% if constraints.completion_required_ids %}
+        <p class="text-soft">{{ constraints.completion_required_ids|length }} عنصرًا قابلًا للإنجاز مطلوبًا.</p>
+      {% else %}
+        <p class="text-muted">لا متطلبات إتمام.</p>
+      {% endif %}
+    </div>
+  </div>
+  <p class="text-muted" style="font-size:.85rem;">
+    القيود المحسوبة هنا هي «السارية»: قيود أساسية من اللقطة + التزامات التكليفات الصادرة.
+    إلغاء تكليف يزيل ما أضافه هو فقط، ويُبقي أي قيد أساسي أو قيد من تكليف آخر.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}حسابي{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">حسابي</h1>
+    <p class="page-sub">{{ request.user }} — {{ request.user.get_role_display }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-quiet" href="{% url 'accounts:password_change' %}">تغيير كلمة المرور</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>البيانات</h2>
+  <dl class="meta">
+    <dt>اسم المستخدم</dt><dd>{{ request.user.username }}</dd>
+    <dt>الاسم</dt><dd>{{ request.user.get_full_name|default:"—" }}</dd>
+    <dt>الدور</dt><dd>{{ request.user.get_role_display }}</dd>
+    <dt>البريد الإلكتروني</dt><dd>{{ request.user.email|default:"—" }}</dd>
+  </dl>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}المراجع{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">مكتبة المراجع</h1>
+    <p class="page-sub">عدة مراجع مستقلة وصالحة بالتوازي — لا يوجد «مرجع رئيسي» واحد يحل محل الباقي.</p>
+  </div>
+  <div class="page-actions">
+    {% if nav_is_admin %}
+      <a class="btn" href="{% url 'catalog:create_shared' %}">مرجع مشترك جديد</a>
+    {% else %}
+      <a class="btn" href="{% url 'catalog:create_private' %}">مرجع خاص جديد</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>المراجع المشتركة</h2>
+  {% if shared_references %}
+  <ul class="item-list">
+    {% for reference in shared_references %}
+    <li>
+      <div class="item-title">
+        <a href="{% url 'catalog:detail' reference.pk %}">{{ reference.title }}</a>
+        {% if reference.is_deleted %}<span class="badge badge-danger">محذوف</span>{% endif %}
+      </div>
+      {% if reference.description %}<div class="item-meta">{{ reference.description }}</div>{% endif %}
+      <div class="item-meta">{{ reference.nodes.count }} عنصرًا</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty">لا توجد مراجع مشتركة بعد.</div>
+  {% endif %}
+</div>
+
+{% if not nav_is_admin %}
+<div class="card">
+  <h2>مراجعي الخاصة</h2>
+  {% if private_references %}
+  <ul class="item-list">
+    {% for reference in private_references %}
+    <li>
+      <div class="item-title"><a href="{% url 'catalog:detail' reference.pk %}">{{ reference.title }}</a></div>
+      {% if reference.description %}<div class="item-meta">{{ reference.description }}</div>{% endif %}
+      <div class="item-meta">{{ reference.nodes.count }} عنصرًا — خاصة بك</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty">لا توجد مراجع خاصة بعد. يمكنك إنشاء مرجعك الخاص واقتراح تعميمه لاحقًا.</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ reference.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ reference.title }}</h1>
+    <p class="page-sub">
+      {% if reference.is_shared %}مرجع مشترك{% else %}مرجع خاص — {{ reference.owner }}{% endif %}
+      — المراجعة {{ reference.revision }}
+      {% if reference.is_deleted %}<span class="badge badge-danger">محذوف من المكتبة الحية</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if can_edit %}
+      <a class="btn" href="{% url 'catalog:node_create' reference.pk %}">عنصر جديد</a>
+      <a class="btn btn-quiet" href="{% url 'catalog:edit' reference.pk %}">تعديل المرجع</a>
+      {% if reference.is_deleted %}
+        {% if nav_is_admin %}
+        <form method="post" action="{% url 'catalog:restore' reference.pk %}" class="inline-form">{% csrf_token %}
+          <button class="btn btn-quiet" type="submit">استرجاع</button>
+        </form>
+        {% endif %}
+      {% else %}
+        <form method="post" action="{% url 'catalog:delete' reference.pk %}" class="inline-form" data-confirm="سيُخفى المرجع من المكتبة الحية. الزيارات السابقة تحتفظ بلقطاتها.">{% csrf_token %}
+          <button class="btn btn-danger" type="submit">حذف</button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {% if reference.is_private and reference.owner == request.user %}
+      <a class="btn btn-quiet" href="{% url 'catalog:submit' reference.pk %}">اقتراح للتعميم</a>
+    {% endif %}
+    <a class="btn btn-quiet" href="{% url 'catalog:list' %}">رجوع</a>
+  </div>
+</div>
+
+{% if reference.description %}
+<div class="card card-flat"><p class="mt-0">{{ reference.description }}</p></div>
+{% endif %}
+
+{% if reference.is_private and reference.owner == request.user %}
+<div class="callout callout-info">
+  <strong>خصوصية المرجع:</strong> هذا المرجع خاص بك. اقتراح التعميم يرسل <em>لقطة مجمّدة</em> من المحتوى الحالي؛
+  تعديلك بعد الإرسال لا يغيّر المادة التي يراجعها مدير النظام. عند القبول يُنشأ مرجع مشترك مستقل،
+  ويبقى هذا المرجع ملكًا لك بتاريخه.
+</div>
+{% endif %}
+
+{% if pending_submission %}
+<div class="callout callout-warn">
+  يوجد مقترح تعميم <strong>قيد المراجعة</strong> لهذا المرجع منذ {{ pending_submission.created_at|ardatetime }}.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2>المحتوى ({{ nodes|length }} عنصرًا)</h2>
+  </div>
+  {% if nodes %}
+  <div>
+    {% for item in nodes %}
+    <div class="tree-row {% if item.depth %}tree-indent{% endif %}">
+      <div class="tree-body" style="padding-inline-start: {{ item.depth }}rem;">
+        <div class="tree-title">
+          <span class="tree-code">{{ item.code }}</span>
+          — {{ item.title }}
+          <span class="type-tag">{{ item.node_type|node_type_label }}</span>
+          {% if item.is_mandatory %}<span class="badge badge-warn">متطلب إتمام</span>{% endif %}
+          {% if item.is_scope_locked %}<span class="badge badge-info">مقيد النطاق</span>{% endif %}
+        </div>
+        {% if item.body %}<div class="tree-desc">{{ item.body }}</div>{% endif %}
+      </div>
+      {% if can_edit %}
+      <div class="tree-actions">
+        <a class="btn btn-quiet btn-sm" href="{% url 'catalog:node_edit' reference.pk item.id %}">تعديل</a>
+        <a class="btn btn-quiet btn-sm" href="{% url 'catalog:node_create' reference.pk %}?parent={{ item.id }}">إضافة فرع داخله</a>
+        <form method="post" action="{% url 'catalog:node_delete' reference.pk item.id %}" class="inline-form" data-confirm="حذف العنصر من المرجع الحي؟ الزيارات السابقة لا تتأثر.">{% csrf_token %}
+          <button class="btn btn-danger btn-sm" type="submit">حذف</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">لا يوجد محتوى بعد. ابدأ بإضافة فرع ثم وصف ثم بنود التفتيش.</div>
+  {% endif %}
+</div>
+
+{% if submissions %}
+<div class="card">
+  <h2>سجل المقترحات</h2>
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>التاريخ</th><th>الحالة</th><th>راجعه</th><th>ملاحظة</th></tr></thead>
+      <tbody>
+        {% for submission in submissions %}
+        <tr>
+          <td>{{ submission.created_at|ardatetime }}</td>
+          <td>
+            {% if submission.status == 'PENDING' %}<span class="badge badge-warn">قيد المراجعة</span>
+            {% elif submission.status == 'APPROVED' %}<span class="badge badge-ok">مقبول</span>
+            {% else %}<span class="badge badge-danger">مرفوض</span>{% endif %}
+          </td>
+          <td>{{ submission.reviewed_by|default:"—" }}</td>
+          <td>{{ submission.review_note|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

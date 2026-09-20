@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin-inline:auto;">
+  <h1>تسجيل الدخول</h1>
+  <p class="text-soft">منصة التفتيش المهني — إدارة الزيارات والمراجع.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="message message-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">دخول</button>
+      <a class="btn btn-quiet" href="{% url 'accounts:register' %}">إنشاء حساب مفتش</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

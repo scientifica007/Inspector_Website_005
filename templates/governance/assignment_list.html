@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}التكليفات{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">التكليفات الرسمية</h1>
+    <p class="page-sub">تكليفات مرتبطة بمسودات زيارات موجودة. تُنشأ كمسودة إدارية ثم تُصدر لتصبح سجلًا رسميًا.</p>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div class="form-row">
+    <label for="status">الحالة</label>
+    <select id="status" name="status">
+      <option value="">— الكل —</option>
+      {% for value, label in statuses %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-quiet" type="submit">تصفية</button>
+</form>
+
+{% if assignments %}
+<div class="card card-flat">
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>العنوان</th><th>الزيارة</th><th>المفتش</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+      <tbody>
+        {% for assignment in assignments %}
+        <tr>
+          <td>{{ assignment.title }}</td>
+          <td><a href="{% url 'visits:detail' assignment.visit.pk %}">{{ assignment.visit.title }}</a></td>
+          <td>{{ assignment.visit.inspector }}</td>
+          <td>
+            {% if assignment.status == 'DRAFT' %}<span class="badge badge-draft">مسودة إدارية</span>
+            {% elif assignment.status == 'ISSUED' %}<span class="badge badge-ok">صادر</span>
+            {% else %}<span class="badge badge-danger">ملغى</span>{% endif %}
+          </td>
+          <td class="nowrap">{{ assignment.created_at|ardate }}</td>
+          <td><a class="btn btn-quiet btn-sm" href="{% url 'governance:assignment_detail' assignment.pk %}">فتح</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">لا توجد تكليفات مطابقة.</div>
+{% endif %}
+{% endblock %}

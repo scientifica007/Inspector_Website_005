@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}تعديل الزيارة{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">تعديل بيانات الزيارة</h1>
+    <p class="page-sub">{{ visit.title }}</p>
+  </div>
+</div>
+<div class="card" style="max-width:680px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">حفظ</button>
+      <a class="btn btn-quiet" href="{% url 'visits:detail' visit.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

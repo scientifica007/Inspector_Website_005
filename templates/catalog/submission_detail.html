@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}مراجعة مقترح{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">مراجعة مقترح تعميم</h1>
+    <p class="page-sub">{{ submission.reference.title }} — قدّمه {{ submission.submitted_by }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-quiet" href="{% url 'catalog:submission_list' %}">رجوع</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>بيانات المقترح</h2>
+  <dl class="meta">
+    <dt>الحالة</dt>
+    <dd>
+      {% if submission.status == 'PENDING' %}<span class="badge badge-warn">قيد المراجعة</span>
+      {% elif submission.status == 'APPROVED' %}<span class="badge badge-ok">مقبول</span>
+      {% else %}<span class="badge badge-danger">مرفوض</span>{% endif %}
+    </dd>
+    <dt>تاريخ التقديم</dt><dd>{{ submission.created_at|ardatetime }}</dd>
+    <dt>ملاحظة المفتش</dt><dd>{{ submission.note|default:"—" }}</dd>
+    {% if submission.reviewed_at %}
+      <dt>راجعه</dt><dd>{{ submission.reviewed_by }}</dd>
+      <dt>تاريخ المراجعة</dt><dd>{{ submission.reviewed_at|ardatetime }}</dd>
+      <dt>ملاحظة المراجعة</dt><dd>{{ submission.review_note|default:"—" }}</dd>
+    {% endif %}
+    {% if submission.approved_reference %}
+      <dt>المرجع المشترك الناتج</dt>
+      <dd><a href="{% url 'catalog:detail' submission.approved_reference.pk %}">{{ submission.approved_reference.title }}</a></dd>
+    {% endif %}
+  </dl>
+</div>
+
+<div class="card">
+  <h2>اللقطة المجمّدة وقت الإرسال</h2>
+  <p class="text-soft">هذا هو المحتوى الذي تتم مراجعته. لا يتأثر بأي تعديل لاحق على المرجع الأصلي.</p>
+  {% for item in submission.snapshot.nodes %}
+  <div class="tree-row">
+    <div class="tree-body" style="padding-inline-start: {{ item.depth }}rem;">
+      <div class="tree-title">
+        <span class="tree-code">{{ item.code }}</span> — {{ item.title }}
+        <span class="type-tag">{{ item.node_type|node_type_label }}</span>
+      </div>
+      {% if item.body %}<div class="tree-desc">{{ item.body }}</div>{% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty">اللقطة لا تحتوي عناصر.</div>
+  {% endfor %}
+</div>
+
+{% if submission.is_pending %}
+<div class="card">
+  <h2>القرار</h2>
+  <form method="post" action="{% url 'catalog:submission_approve' submission.pk %}">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+      {{ form.note }}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ok" type="submit">قبول وإنشاء مرجع مشترك</button>
+    </div>
+  </form>
+  <form method="post" action="{% url 'catalog:submission_reject' submission.pk %}" style="margin-block-start:12px;" data-confirm="رفض المقترح؟ سيبقى المرجع خاصًا بمفتشه.">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="reject-note">ملاحظة الرفض</label>
+      <textarea id="reject-note" name="note" rows="3"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" type="submit">رفض</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

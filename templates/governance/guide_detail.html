@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ guide.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ guide.title }}</h1>
+    <p class="page-sub">
+      المرجع: {{ guide.reference.title }} — الإصدار {{ guide.version }} —
+      {% if guide.status == 'PUBLISHED' %}<span class="badge badge-ok">منشور</span>
+      {% elif guide.status == 'DRAFT' %}<span class="badge badge-draft">مسودة</span>
+      {% else %}<span class="badge badge-muted">مؤرشف</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-quiet" href="{% url 'governance:guide_edit' guide.pk %}">تعديل</a>
+    {% if guide.status != 'PUBLISHED' %}
+    <form method="post" action="{% url 'governance:guide_publish' guide.pk %}" class="inline-form">{% csrf_token %}
+      <button class="btn btn-ok" type="submit">نشر الدليل</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{% url 'governance:guide_delete' guide.pk %}" class="inline-form" data-confirm="حذف الدليل؟ الزيارات التي طبّقته تحتفظ بأثر التطبيق.">{% csrf_token %}
+      <button class="btn btn-danger" type="submit">حذف</button>
+    </form>
+    <a class="btn btn-quiet" href="{% url 'governance:guide_list' %}">رجوع</a>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <strong>الدليل اقتراح وليس أمرًا:</strong> لا يقفل أي عنصر، ولا يجعل أي عنصر متطلب إتمام.
+  عند التطبيق تُضاف العناصر غير الموجودة فقط، ويُحفظ المصدر الأصلي لكل عنصر.
+  إذا حُذف الدليل أو تغيّر لاحقًا فلا تُعاد كتابة أي زيارة سابقة.
+</div>
+
+{% if guide.description %}
+<div class="card card-flat"><p class="mt-0">{{ guide.description }}</p></div>
+{% endif %}
+
+<div class="card">
+  <h2>العناصر المقترحة ({{ guide.targets.count }})</h2>
+  {% if guide.targets.all %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>المعرّف</th><th>العنوان وقت الإضافة</th><th>النوع</th><th></th></tr></thead>
+      <tbody>
+        {% for target in guide.targets.all %}
+        <tr>
+          <td class="tree-code">{{ target.code }}</td>
+          <td>{{ target.title_snapshot }}</td>
+          <td>{{ target.node_type_snapshot|node_type_label }}</td>
+          <td>
+            <form method="post" action="{% url 'governance:guide_target_remove' guide.pk target.pk %}" class="inline-form">{% csrf_token %}
+              <button class="btn btn-quiet btn-sm" type="submit">إزالة</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">لا عناصر مقترحة بعد. أضف معرّفات عناصر موجودة في المرجع المرتبط.</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>إضافة عنصر مقترح</h2>
+  <form method="post" action="{% url 'governance:guide_target_add' guide.pk %}">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+      {{ form.code }}
+      <span class="helptext">{{ form.code.help_text }}</span>
+    </div>
+    <div class="form-actions"><button class="btn" type="submit">إضافة</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>محتوى المرجع المرتبط</h2>
+  <p class="text-soft">انسخ المعرّف الثابت للعنصر الذي تريد اقتراحه.</p>
+  {% for node in guide.reference.nodes.all %}
+    <div class="tree-row">
+      <div class="tree-body">
+        <span class="tree-code">{{ node.code }}</span> — {{ node.title }}
+        <span class="type-tag">{{ node.node_type|node_type_label }}</span>
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty">المرجع المرتبط لا يحتوي عناصر.</div>
+  {% endfor %}
+</div>
+{% endblock %}

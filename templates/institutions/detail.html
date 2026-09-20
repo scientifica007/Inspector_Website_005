@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ institution.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ institution.name }}</h1>
+    <p class="page-sub">{{ institution.get_kind_display }}{% if institution.code %} — {{ institution.code }}{% endif %}</p>
+  </div>
+  <div class="page-actions">
+    {% if nav_is_admin %}<a class="btn btn-quiet" href="{% url 'institutions:edit' institution.pk %}">تعديل</a>{% endif %}
+    <a class="btn btn-quiet" href="{% url 'institutions:list' %}">رجوع</a>
+  </div>
+</div>
+
+<div class="card">
+  <dl class="meta">
+    <dt>الموقع</dt><dd>{{ institution.location|default:"—" }}</dd>
+    <dt>الحالة</dt><dd>{% if institution.is_active %}نشطة{% else %}غير نشطة{% endif %}</dd>
+    <dt>عدد الزيارات</dt><dd>{{ institution.visits.count }}</dd>
+  </dl>
+</div>
+
+{% if institution.visits.all %}
+<div class="card">
+  <h2>الزيارات المرتبطة</h2>
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>العنوان</th><th>المفتش</th><th>التاريخ</th><th>الحالة</th></tr></thead>
+      <tbody>
+        {% for visit in institution.visits.all %}
+        <tr>
+          <td><a href="{% url 'visits:detail' visit.pk %}">{{ visit.title }}</a></td>
+          <td>{{ visit.inspector }}</td>
+          <td>{{ visit.visit_date|ardate }}</td>
+          <td>{% if visit.is_draft %}<span class="badge badge-draft">مسودة</span>{% else %}<span class="badge badge-ok">مكتملة</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

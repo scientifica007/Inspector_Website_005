@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}إلغاء تكليف{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">إلغاء التكليف</h1>
+    <p class="page-sub">{{ assignment.title }} — {{ assignment.visit.title }}</p>
+  </div>
+</div>
+
+<div class="callout callout-warn">
+  الإلغاء متاح للتكليفات الصادرة فقط وبينما الزيارة <strong>مسودة</strong>.
+  الإلغاء لا يحذف بيانات الزيارة ولا اللقطة، ولا يستبعد العناصر؛
+  بل يزيل فقط الالتزامات التي لم يعد لها مبرر من تكليف آخر أو من قيد أساسي.
+  يُسجَّل من ألغى ومتى والسبب.
+</div>
+
+<div class="card" style="max-width:640px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+      {{ form.reason }}
+      {% if form.reason.help_text %}<span class="helptext">{{ form.reason.help_text }}</span>{% endif %}
+      {% if form.reason.errors %}<ul class="errorlist">{% for e in form.reason.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" type="submit">تأكيد الإلغاء</button>
+      <a class="btn btn-quiet" href="{% url 'governance:assignment_detail' assignment.pk %}">رجوع</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

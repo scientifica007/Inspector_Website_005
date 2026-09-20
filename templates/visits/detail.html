@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ visit.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ visit.title }}</h1>
+    <p class="page-sub">
+      {{ visit.institution_name_snapshot|default:visit.institution.name }}
+      — {{ visit.visit_date|ardate }}
+      {% if visit.is_draft %}<span class="badge badge-draft">مسودة</span>{% else %}<span class="badge badge-ok">مكتملة</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if can_edit %}
+      <a class="btn" href="{% url 'visits:scope' visit.pk %}">تكوين النطاق</a>
+      <a class="btn btn-ok" href="{% url 'visits:execute' visit.pk %}">التنفيذ</a>
+      <a class="btn btn-quiet" href="{% url 'visits:edit' visit.pk %}">تعديل البيانات</a>
+    {% endif %}
+    <a class="btn btn-quiet" href="{% url 'visits:export' visit.pk %}?download=1">تصدير JSON</a>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  <div class="stat">
+    <div class="stat-value">{{ progress.done }} / {{ progress.total }}</div>
+    <div class="stat-label">عناصر منجزة</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ progress.percent }}%</div>
+    <div class="stat-label">نسبة التقدم</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ visit.nodes.count }}</div>
+    <div class="stat-label">عناصر في اللقطة</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ outstanding|length }}</div>
+    <div class="stat-label">متطلبات غير منجزة</div>
+  </div>
+</div>
+
+<div class="card" style="margin-block-start:16px;">
+  <div class="progress-bar"><span style="width: {{ progress.percent }}%"></span></div>
+  <div class="progress-meta">
+    <span>{{ progress.done }} من {{ progress.total }} عنصرًا نشطًا محتسبًا</span>
+    <span>{{ progress.percent }}%</span>
+  </div>
+  <p class="text-muted" style="margin-block-start:8px;font-size:.85rem;">
+    حساب التقدم يعتمد على العناصر النشطة الداخلة فعليًا في التنفيذ فقط:
+    لا تُحتسب العناصر المستبعدة ولا عقد السياق الهيكلية.
+  </p>
+</div>
+
+<div class="grid grid-2" style="margin-block-start:16px;">
+  <div class="card">
+    <h2>المصدر التاريخي</h2>
+    <dl class="meta">
+      <dt>المرجع</dt>
+      <dd>
+        {{ visit.source_reference_label }}
+        {% if visit.source_reference and visit.source_reference.is_deleted %}
+          <span class="badge badge-danger">محذوف من المكتبة الحية</span>
+        {% endif %}
+      </dd>
+      <dt>نطاق المرجع وقت الإنشاء</dt>
+      <dd>{% if visit.source_reference_visibility == 'SHARED' %}مرجع مشترك{% elif visit.source_reference_visibility == 'PRIVATE' %}مرجع خاص{% else %}—{% endif %}</dd>
+      <dt>مراجعة المرجع وقت الإنشاء</dt><dd>{{ visit.source_reference_revision|default:"—" }}</dd>
+      <dt>المؤسسة وقت الإنشاء</dt><dd>{{ visit.institution_name_snapshot|default:"—" }}</dd>
+      <dt>أُنشئت</dt><dd>{{ visit.created_at|ardatetime }}</dd>
+      {% if visit.completed_at %}
+        <dt>أُكملت</dt><dd>{{ visit.completed_at|ardatetime }} — {{ visit.completed_by }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>الإجراءات الإدارية</h2>
+    {% if nav_is_admin and visit.is_draft %}
+      <div class="stack-sm">
+        <a class="btn btn-quiet" href="{% url 'governance:assignment_create' visit.pk %}">تكليف رسمي جديد</a>
+        <p class="text-muted" style="font-size:.85rem;">
+          التكليف يُنشأ كمسودة إدارية غير مرئية للمفتش، ثم يُصدر ليصبح سجلًا رسميًا.
+        </p>
+      </div>
+    {% elif visit.is_completed %}
+      <p class="text-soft">الزيارة مكتملة: لا تكليفات جديدة، ولا إلغاء، ولا إعادة تفسير.</p>
+    {% else %}
+      <p class="text-muted">لا إجراءات إدارية متاحة في هذه المرحلة.</p>
+    {% endif %}
+
+    {% if is_owner and visit.is_draft %}
+      <form method="post" action="{% url 'visits:delete' visit.pk %}" style="margin-block-start:14px;" data-confirm="حذف هذه المسودة نهائيًا؟">{% csrf_token %}
+        <button class="btn btn-danger btn-sm" type="submit">حذف المسودة</button>
+      </form>
+      <p class="text-muted" style="font-size:.8rem;margin-block-start:6px;">
+        حذف المسودة متاح لصاحبها فقط دون المسؤولين.
+      </p>
+    {% elif visit.is_completed %}
+      <p class="text-muted" style="font-size:.85rem;margin-block-start:14px;">
+        الزيارة المكتملة حقيقة تاريخية محمية ولا يمكن حذفها.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+{% if outstanding %}
+<div class="card">
+  <h2>متطلبات الإتمام غير المنجزة</h2>
+  <p class="text-soft">لا يمكن إكمال الزيارة قبل استيفاء هذه العناصر.</p>
+  <ul class="item-list">
+    {% for node in outstanding %}
+    <li>
+      <span class="tree-code">{{ node.code }}</span> — {{ node.title }}
+      {% if node.baseline_completion_required %}<span class="badge badge-muted">متطلب أساسي</span>{% else %}<span class="badge badge-warn">متطلب إتمام (تكليف)</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>التكليفات الصادرة</h2>
+  {% if issued_assignments %}
+    {% for assignment in issued_assignments %}
+    <div class="callout">
+      <strong>{{ assignment.title }}</strong>
+      <div class="item-meta">أصدره {{ assignment.issued_by }} في {{ assignment.issued_at|ardatetime }}</div>
+      {% if assignment.instruction %}<p style="margin-block-start:6px;">{{ assignment.instruction }}</p>{% endif %}
+      <ul class="item-list">
+        {% for entry in assignment.entries.all %}
+        <li>
+          <span class="tree-code">{{ entry.target_node.code }}</span> — {{ entry.target_node.title }}
+          {% if entry.scope_locked %}<span class="badge badge-info">قيد نطاق</span>{% endif %}
+          {% if entry.completion_required %}<span class="badge badge-warn">متطلب إتمام</span>{% endif %}
+          {% if entry.note %}<div class="item-meta">{{ entry.note }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted">لا توجد تكليفات صادرة لهذه الزيارة.</p>
+  {% endif %}
+</div>
+
+{% if nav_is_admin and draft_assignments %}
+<div class="card">
+  <h2>مسودات إدارية (غير مرئية للمفتش)</h2>
+  <ul class="item-list">
+    {% for assignment in draft_assignments %}
+    <li>
+      <div class="item-title"><a href="{% url 'governance:assignment_detail' assignment.pk %}">{{ assignment.title }}</a></div>
+      <div class="item-meta">{{ assignment.entries.count }} بندًا — لم يُصدر بعد</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>سجل إلغاء التكليفات</h2>
+  {% if revoked_assignments %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>التكليف</th><th>ألغاه</th><th>التاريخ</th><th>السبب</th></tr></thead>
+      <tbody>
+        {% for assignment in revoked_assignments %}
+        <tr>
+          <td>{{ assignment.title }}</td>
+          <td>{{ assignment.revoked_by }}</td>
+          <td class="nowrap">{{ assignment.revoked_at|ardatetime }}</td>
+          <td>{{ assignment.revoke_reason }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">لا يوجد تكليف ملغى.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>الأدلة المطبقة</h2>
+  {% if guide_applications %}
+  <ul class="item-list">
+    {% for application in guide_applications %}
+    <li>
+      <div class="item-title">{{ application.guide_title_snapshot }}</div>
+      <div class="item-meta">
+        الإصدار {{ application.guide_version_snapshot }} — طبّقه {{ application.applied_by }} في {{ application.created_at|ardatetime }}
+        — أُضيف {{ application.added_count }} عنصرًا
+        {% if application.skipped_count %}— تُخطّي {{ application.skipped_count }}{% endif %}
+      </div>
+      {% if application.skipped_codes %}
+        <div class="item-meta">عناصر غير متوافقة: {{ application.skipped_codes|join:"، " }}</div>
+      {% endif %}
+      {% if not application.guide %}
+        <div class="item-meta"><span class="badge badge-muted">الدليل حُذف لاحقًا — أثر التطبيق محفوظ</span></div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-muted">لم يُطبَّق أي دليل على هذه الزيارة.</p>
+  {% endif %}
+</div>
+{% endblock %}

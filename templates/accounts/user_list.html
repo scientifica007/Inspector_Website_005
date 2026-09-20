@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}المستخدمون{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">المستخدمون</h1>
+    <p class="page-sub">إدارة الحسابات والأدوار. تعطيل الحساب يمنع الدخول دون حذف أي بيانات.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="{% url 'accounts:user_create' %}">مستخدم جديد</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if users %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>اسم المستخدم</th>
+          <th>الاسم الظاهر</th>
+          <th>الدور</th>
+          <th>الحالة</th>
+          <th>آخر دخول</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.username }}</td>
+          <td>{{ u.display_name|default:"—" }}</td>
+          <td><span class="badge badge-role">{{ u.get_role_display }}</span></td>
+          <td>
+            {% if u.is_active %}<span class="badge badge-ok">نشط</span>
+            {% else %}<span class="badge badge-muted">معطّل</span>{% endif %}
+          </td>
+          <td>{{ u.last_login|ardatetime }}</td>
+          <td>
+            <div class="badge-row">
+            <a class="btn btn-quiet btn-sm" href="{% url 'accounts:user_edit' u.pk %}">تعديل</a>
+            {% if u.pk != request.user.pk %}
+            <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-quiet btn-sm">
+                {% if u.is_active %}تعطيل{% else %}تفعيل{% endif %}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">لا يوجد مستخدمون بعد.</p>
+  {% endif %}
+</div>
+{% endblock %}
