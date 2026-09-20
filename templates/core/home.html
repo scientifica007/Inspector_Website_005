@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}الرئيسية{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">مرحبًا {{ request.user }}</h1>
+    <p class="page-sub">
+      {% if is_admin %}
+        مساحة الحوكمة: المراجع المشتركة، الأدلة، التكليفات الرسمية ومراجعة المقترحات.
+      {% else %}
+        مساحة المفتش: أنشئ زياراتك، كوّن نطاقها بحرية، ونفّذها ثم صدّرها.
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if not is_admin %}<a class="btn" href="{% url 'visits:create' %}">زيارة جديدة</a>{% endif %}
+  </div>
+</div>
+
+{% if is_admin %}
+<div class="grid grid-3">
+  <a class="card card-flat" href="{% url 'catalog:list' %}"><h2>المراجع</h2><p class="text-soft">إنشاء وتحرير المراجع المشتركة وبنيتها الهرمية.</p></a>
+  <a class="card card-flat" href="{% url 'governance:guide_list' %}"><h2>الأدلة</h2><p class="text-soft">اقتراحات اختيارية قابلة لإعادة الاستخدام داخل الزيارات.</p></a>
+  <a class="card card-flat" href="{% url 'governance:assignment_list' %}"><h2>التكليفات</h2><p class="text-soft">تكليفات رسمية بمرحلتي مسودة وإصدار على مسودات الزيارات.</p></a>
+  <a class="card card-flat" href="{% url 'catalog:submission_list' %}"><h2>مقترحات التعميم</h2><p class="text-soft">مراجعة لقطات المراجع الخاصة التي اقترح مفتشون تعميمها.</p></a>
+  <a class="card card-flat" href="{% url 'visits:list' %}"><h2>الزيارات</h2><p class="text-soft">عرض الزيارات وقراءة بياناتها لأغراض التكليف والتدقيق.</p></a>
+  <a class="card card-flat" href="{% url 'institutions:list' %}"><h2>المؤسسات</h2><p class="text-soft">المؤسسات الخاضعة للزيارات التفتيشية.</p></a>
+</div>
+{% else %}
+<div class="grid grid-3">
+  <a class="card card-flat" href="{% url 'visits:list' %}"><h2>زياراتي</h2><p class="text-soft">إنشاء الزيارة، تكوين نطاقها، تنفيذها ثم تصديرها.</p></a>
+  <a class="card card-flat" href="{% url 'catalog:list' %}"><h2>المراجع</h2><p class="text-soft">المراجع المشتركة المتاحة ومراجعك الخاصة، مع إمكانية اقتراح التعميم.</p></a>
+  <a class="card card-flat" href="{% url 'governance:my_assignments' %}"><h2>تكليفاتي</h2><p class="text-soft">التكليفات الرسمية الصادرة إليك وما تفرضه من التزامات.</p></a>
+</div>
+<div class="callout callout-info" style="margin-block-start:18px;">
+  <strong>تذكير بالمبدأ الأساسي:</strong>
+  الزيارة ليست «حرة» أو «موجهة» أو «مقيدة». الاقتراحات والتزامات التفتيش تُطبَّق على عناصر محددة داخل الزيارة،
+  وكل زيارة تحتفظ بلقطة مجمّدة من مرجعها تحمي حقيقتها التاريخية.
+</div>
+{% endif %}
+{% endblock %}

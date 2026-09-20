@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}زيارة جديدة{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">زيارة جديدة</h1>
+    <p class="page-sub">الزيارة تبدأ بنطاق فارغ، وتكتسب لقطة مجمّدة إذا اخترت مرجعًا.</p>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <strong>اللقطة المجمّدة:</strong> عند اختيار مرجع تُنسخ بنيته داخل الزيارة. بعد ذلك، تعديل المرجع أو حذفه
+  لا يغيّر هذه الزيارة، وإضافة عناصر جديدة للمرجع لا تظهر هنا تلقائيًا.
+</div>
+
+<div class="card" style="max-width:720px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">إنشاء الزيارة</button>
+      <a class="btn btn-quiet" href="{% url 'visits:list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}المؤسسات{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">المؤسسات</h1>
+    <p class="page-sub">المؤسسات الخاضعة للزيارات التفتيشية.</p>
+  </div>
+  {% if nav_is_admin %}
+  <div class="page-actions"><a class="btn" href="{% url 'institutions:create' %}">مؤسسة جديدة</a></div>
+  {% endif %}
+</div>
+
+<form class="filters" method="get">
+  <div class="form-row">
+    <label for="q">بحث</label>
+    <input type="text" id="q" name="q" value="{{ query }}" placeholder="الاسم أو الرمز أو الموقع">
+  </div>
+  <button class="btn btn-quiet" type="submit">بحث</button>
+</form>
+
+{% if institutions %}
+<div class="card card-flat">
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>الاسم</th><th>الرمز</th><th>النوع</th><th>الموقع</th><th>الحالة</th></tr>
+      </thead>
+      <tbody>
+        {% for institution in institutions %}
+        <tr>
+          <td><a href="{% url 'institutions:detail' institution.pk %}">{{ institution.name }}</a></td>
+          <td>{{ institution.code|default:"—" }}</td>
+          <td>{{ institution.get_kind_display }}</td>
+          <td>{{ institution.location|default:"—" }}</td>
+          <td>{% if institution.is_active %}<span class="badge badge-ok">نشطة</span>{% else %}<span class="badge">غير نشطة</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">لا توجد مؤسسات مطابقة.</div>
+{% endif %}
+{% endblock %}

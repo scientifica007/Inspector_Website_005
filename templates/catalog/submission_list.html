@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}مقترحات التعميم{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">مقترحات تعميم المراجع</h1>
+    <p class="page-sub">مراجعة لقطات مجمّدة قدّمها مفتشون لتحويل مراجعهم الخاصة إلى مراجع مشتركة.</p>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div class="form-row">
+    <label for="status">الحالة</label>
+    <select id="status" name="status">
+      <option value="">— الكل —</option>
+      {% for value, label in statuses %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-quiet" type="submit">تصفية</button>
+</form>
+
+{% if submissions %}
+<div class="card card-flat">
+  <div class="table-scroll">
+    <table class="data">
+      <thead><tr><th>المرجع</th><th>قدّمه</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead>
+      <tbody>
+        {% for submission in submissions %}
+        <tr>
+          <td>{{ submission.reference.title }}</td>
+          <td>{{ submission.submitted_by|default:"—" }}</td>
+          <td>{{ submission.created_at|ardatetime }}</td>
+          <td>
+            {% if submission.status == 'PENDING' %}<span class="badge badge-warn">قيد المراجعة</span>
+            {% elif submission.status == 'APPROVED' %}<span class="badge badge-ok">مقبول</span>
+            {% else %}<span class="badge badge-danger">مرفوض</span>{% endif %}
+          </td>
+          <td><a class="btn btn-quiet btn-sm" href="{% url 'catalog:submission_detail' submission.pk %}">مراجعة</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">لا توجد مقترحات مطابقة.</div>
+{% endif %}
+{% endblock %}

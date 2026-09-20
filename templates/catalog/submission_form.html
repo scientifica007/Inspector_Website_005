@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}اقتراح تعميم مرجع{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">اقتراح تعميم المرجع</h1>
+    <p class="page-sub">{{ reference.title }}</p>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  عند الإرسال تُنشأ <strong>لقطة مجمّدة</strong> من محتوى المرجع الحالي
+  ({{ reference.nodes.count }} عنصرًا، المراجعة {{ reference.revision }}).
+  أي تعديل تجريه لاحقًا على مرجعك لا يغيّر ما سيراجعه مدير النظام.
+</div>
+
+<div class="card" style="max-width:640px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">إرسال للمراجعة</button>
+      <a class="btn btn-quiet" href="{% url 'catalog:detail' reference.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

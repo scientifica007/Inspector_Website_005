@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}الزيارات{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">الزيارات التفتيشية</h1>
+    <p class="page-sub">
+      {% if nav_is_admin %}قراءة وتدقيق الزيارات.{% else %}زياراتك: التكوين، التنفيذ، ثم التصدير.{% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    {% if nav_is_inspector %}<a class="btn" href="{% url 'visits:create' %}">زيارة جديدة</a>{% endif %}
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <div class="form-row">
+    <label for="status">الحالة</label>
+    <select id="status" name="status">
+      <option value="">— الكل —</option>
+      {% for value, label in statuses %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-quiet" type="submit">تصفية</button>
+</form>
+
+{% if visits %}
+<div class="card card-flat">
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>العنوان</th><th>المؤسسة</th><th>المفتش</th><th>التاريخ</th><th>الحالة</th><th>المرجع</th></tr>
+      </thead>
+      <tbody>
+        {% for visit in visits %}
+        <tr>
+          <td><a href="{% url 'visits:detail' visit.pk %}">{{ visit.title }}</a></td>
+          <td>{{ visit.institution_name_snapshot|default:visit.institution.name }}</td>
+          <td>{{ visit.inspector }}</td>
+          <td class="nowrap">{{ visit.visit_date|ardate }}</td>
+          <td>
+            {% if visit.is_draft %}<span class="badge badge-draft">مسودة</span>
+            {% else %}<span class="badge badge-ok">مكتملة</span>{% endif %}
+          </td>
+          <td>{{ visit.source_reference_label }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty">لا توجد زيارات مطابقة.</div>
+{% endif %}
+{% endblock %}

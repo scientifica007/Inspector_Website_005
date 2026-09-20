@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn">حفظ</button>
+      <a class="btn btn-quiet" href="{% url 'accounts:user_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

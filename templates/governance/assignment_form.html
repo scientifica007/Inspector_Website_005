@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}تكليف جديد{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">تكليف رسمي جديد</h1>
+    <p class="page-sub">الزيارة: {{ visit.title }} — المفتش: {{ visit.inspector }}</p>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  يُنشأ التكليف أولًا كمسودة إدارية <strong>لا يراها المفتش</strong>. بعد إضافة البنود والتحقق منها يمكنك إصداره،
+  وحينها فقط يظهر للمفتش ويصبح سجلًا رسميًا. الإصدار ذرّي: إما كل البنود أو لا شيء.
+</div>
+
+<div class="card" style="max-width:680px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">إنشاء المسودة الإدارية</button>
+      <a class="btn btn-quiet" href="{% url 'visits:detail' visit.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

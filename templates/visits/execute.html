@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}تنفيذ الزيارة{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">تنفيذ الزيارة</h1>
+    <p class="page-sub">{{ visit.title }} — {{ visit.institution_name_snapshot|default:visit.institution.name }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-quiet" href="{% url 'visits:scope' visit.pk %}">تكوين النطاق</a>
+    <a class="btn btn-quiet" href="{% url 'visits:detail' visit.pk %}">لوحة الزيارة</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="progress-bar"><span style="width: {{ progress.percent }}%"></span></div>
+  <div class="progress-meta">
+    <span>{{ progress.done }} / {{ progress.total }} عنصرًا نشطًا محتسبًا</span>
+    <span>{{ progress.percent }}%</span>
+  </div>
+  {% if outstanding_ids %}
+    <p class="text-soft" style="margin-block-start:10px;font-size:.88rem;">
+      توجد {{ outstanding_ids|length }} متطلبات إتمام غير منجزة تمنع الإكمال.
+    </p>
+  {% endif %}
+</div>
+
+{% if not rows %}
+  <div class="empty">لا توجد عناصر نشطة. عد إلى تكوين النطاق واختر ما تريد تفتيشه.</div>
+{% else %}
+  {% for row in rows %}
+  {% if row.node.is_context_only %}
+    <div class="exec-item is-context">
+      <div class="exec-head">
+        <div>
+          <div class="exec-title" style="padding-inline-start: {{ row.depth }}rem;">
+            <span class="tree-code">{{ row.node.code }}</span> — {{ row.node.title }}
+          </div>
+          <div class="item-meta">سياق هيكلي — لا يُحتسب في الإنجاز</div>
+        </div>
+        <span class="badge badge-muted">سياق</span>
+      </div>
+    </div>
+  {% elif row.node.is_branch %}
+    <div class="exec-item">
+      <div class="exec-head">
+        <div>
+          <div class="exec-title" style="padding-inline-start: {{ row.depth }}rem;">
+            <span class="tree-code">{{ row.node.code }}</span> — {{ row.node.title }}
+          </div>
+          {% if row.node.body %}<div class="item-meta">{{ row.node.body }}</div>{% endif %}
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-muted">فرع</span>
+          {% if row.node.id in outstanding_ids %}<span class="badge badge-warn">متطلب إتمام</span>{% endif %}
+          {% if row.scope_locked %}<span class="badge badge-ok">قيد نطاق</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="exec-item">
+      <div class="exec-head">
+        <div>
+          <div class="exec-title" style="padding-inline-start: {{ row.depth }}rem;">
+            <span class="tree-code">{{ row.node.code }}</span> — {{ row.node.title }}
+          </div>
+          {% if row.node.body %}<div class="item-meta">{{ row.node.body }}</div>{% endif %}
+        </div>
+        <div class="badge-row">
+          {% if row.node.is_checklist_item %}
+            <span class="badge {{ row.node.result|result_badge }}">{{ row.node.result|result_label }}</span>
+          {% endif %}
+          {% if row.node.carries_value %}
+            <span class="badge badge-muted">{{ row.node|value_display }}</span>
+          {% endif %}
+          {% if row.node.origin %}<span class="badge {{ row.node.origin|origin_badge }}">{{ row.node.origin|origin_label }}</span>{% endif %}
+          {% if row.node.id in outstanding_ids %}<span class="badge badge-warn">متطلب إتمام</span>{% endif %}
+          {% if row.scope_locked %}<span class="badge badge-ok">قيد نطاق</span>{% endif %}
+        </div>
+      </div>
+
+      {% if row.node.observation %}
+        <p class="text-soft" style="margin-block-start:8px;font-size:.9rem;">{{ row.node.observation }}</p>
+      {% endif %}
+
+      <div class="exec-forms">
+        {% if row.node.is_checklist_item %}
+        <form class="exec-form" method="post" action="{% url 'visits:record_item' visit.pk row.node.pk %}">
+          {% csrf_token %}
+          <h4>نتيجة البند</h4>
+          <div class="result-choice">
+            <label><input type="radio" name="result" value="MATCH" {% if row.node.result == 'MATCH' %}checked{% endif %}> مطابق</label>
+            <label><input type="radio" name="result" value="NOT_MATCH" {% if row.node.result == 'NOT_MATCH' %}checked{% endif %}> غير مطابق</label>
+            <label><input type="radio" name="result" value="NOT_APPLICABLE" {% if row.node.result == 'NOT_APPLICABLE' %}checked{% endif %}> غير منطبق</label>
+          </div>
+          <div class="form-row" style="margin-block-start:10px;">
+            <label for="obs-{{ row.node.pk }}">ملاحظة / مشاهدة</label>
+            <textarea id="obs-{{ row.node.pk }}" name="observation" rows="2">{{ row.node.observation }}</textarea>
+          </div>
+          <button class="btn btn-sm" type="submit">حفظ النتيجة</button>
+        </form>
+        {% endif %}
+
+        {% if row.node.carries_value %}
+        <form class="exec-form" method="post" action="{% url 'visits:record_value' visit.pk row.node.pk %}">
+          {% csrf_token %}
+          <h4>القيمة</h4>
+          {% if row.node.value_type == 'NUMBER' %}
+            <div class="form-row">
+              <label for="val-{{ row.node.pk }}">القيمة العددية</label>
+              <input type="number" step="0.001" id="val-{{ row.node.pk }}" name="value_number" value="{{ row.node.value_number|default_if_none:'' }}">
+            </div>
+          {% elif row.node.value_type == 'DATE' %}
+            <div class="form-row">
+              <label for="val-{{ row.node.pk }}">القيمة (تاريخ)</label>
+              <input type="date" id="val-{{ row.node.pk }}" name="value_date" value="{{ row.node.value_date|date:'Y-m-d' }}">
+            </div>
+          {% elif row.node.value_type == 'BOOLEAN' %}
+            <div class="form-row">
+              <label for="val-{{ row.node.pk }}">القيمة</label>
+              <select id="val-{{ row.node.pk }}" name="value_boolean">
+                <option value="">—</option>
+                <option value="True" {% if row.node.value_boolean == True %}selected{% endif %}>نعم</option>
+                <option value="False" {% if row.node.value_boolean == False %}selected{% endif %}>لا</option>
+              </select>
+            </div>
+          {% else %}
+            <div class="form-row">
+              <label for="val-{{ row.node.pk }}">القيمة النصية</label>
+              <textarea id="val-{{ row.node.pk }}" name="value_text" rows="2">{{ row.node.value_text }}</textarea>
+            </div>
+          {% endif %}
+          <div class="form-row">
+            <label for="vobs-{{ row.node.pk }}">ملاحظة</label>
+            <textarea id="vobs-{{ row.node.pk }}" name="observation" rows="2">{{ row.node.observation }}</textarea>
+          </div>
+          <button class="btn btn-sm" type="submit">حفظ القيمة</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+  {% endfor %}
+
+  <div class="card">
+    <h2>إكمال الزيارة</h2>
+    <p class="text-soft">
+      بعد الإكمال تصبح الزيارة حقيقة تاريخية محمية: لا تغيير للنتائج أو النطاق، ولا تكليف جديد، ولا إلغاء، ولا حذف.
+    </p>
+    {% if outstanding_ids %}
+      <div class="callout callout-warn">
+        لا يمكن الإكمال قبل استيفاء {{ outstanding_ids|length }} من متطلبات الإتمام.
+      </div>
+    {% endif %}
+    <form method="post" action="{% url 'visits:complete' visit.pk %}" data-confirm="إكمال الزيارة نهائيًا؟ لا يمكن التراجع بعد ذلك.">
+      {% csrf_token %}
+      <button class="btn btn-ok" type="submit" {% if outstanding_ids %}disabled aria-disabled="true"{% endif %}>إكمال الزيارة</button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

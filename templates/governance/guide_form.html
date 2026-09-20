@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}دليل{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">دليل جديد أو تعديل</h1>
+    {% if reference %}<p class="page-sub">المرجع المرتبط: {{ reference.title }}</p>{% endif %}
+  </div>
+</div>
+
+{% if not reference %}
+<div class="callout callout-warn">
+  اختر المرجع المشترك الذي سيرتبط به الدليل. يقترح الدليل عناصر من هذا المرجع فقط.
+</div>
+<form class="filters" method="get">
+  <div class="form-row">
+    <label for="reference">المرجع المشترك</label>
+    <select id="reference" name="reference" required>
+      <option value="">— اختر مرجعًا —</option>
+      {% for item in references %}
+        <option value="{{ item.pk }}">{{ item.title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-quiet" type="submit">متابعة</button>
+</form>
+{% else %}
+<div class="card" style="max-width:680px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-row">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn" type="submit">حفظ</button>
+      <a class="btn btn-quiet" href="{% url 'governance:guide_list' %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

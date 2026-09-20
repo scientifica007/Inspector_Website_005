@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}نطاق الزيارة{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">تكوين نطاق الزيارة</h1>
+    <p class="page-sub">{{ visit.title }} — {{ visit.visit_date|ardate }}</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-quiet" href="{% url 'visits:detail' visit.pk %}">لوحة الزيارة</a>
+    <a class="btn btn-ok" href="{% url 'visits:execute' visit.pk %}">التنفيذ</a>
+  </div>
+</div>
+
+<div class="grid grid-3">
+  <div class="stat">
+    <div class="stat-value">{{ progress.done }} / {{ progress.total }}</div>
+    <div class="stat-label">العناصر المحتسبة والمنجزة</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ rows|length }}</div>
+    <div class="stat-label">عناصر في اللقطة</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ visit.selected_nodes.count }}</div>
+    <div class="stat-label">عناصر داخل النطاق</div>
+  </div>
+</div>
+
+<div class="callout callout-info" style="margin-block-start:16px;">
+  <strong>النطاق انتقائي:</strong> الزيارة لا تبدأ بكل عناصر المرجع. اختر <em>فرعًا كاملًا</em> أو <em>وصفًا</em>
+  أو <em>بندًا</em>، أو أضف محتوى محليًا. عند اختيار بند عميق يظهر مساره للسياق فقط،
+  وعقد السياق لا تُحتسب في الإنجاز.
+</div>
+
+{% if not rows %}
+<div class="empty">
+  هذه الزيارة بدون لقطة مرجع. يمكنك إضافة محتوى محلي لبناء نطاقك.
+</div>
+{% endif %}
+
+{% if rows %}
+<div class="card">
+  <div class="card-head">
+    <h2>اللقطة المجمّدة</h2>
+    <div class="badge-row">
+      <span class="badge badge-info">مختار</span>
+      <span class="badge badge-muted">سياق</span>
+      <span class="badge badge-draft">مستبعد</span>
+      <span class="badge badge-warn">متطلب إتمام</span>
+      <span class="badge badge-ok">قيد نطاق</span>
+    </div>
+  </div>
+
+  {% for row in rows %}
+  <div class="tree-row {% if row.node.is_excluded %}is-excluded{% elif row.node.is_selected %}is-selected{% else %}is-context{% endif %}">
+    <div class="tree-body" style="padding-inline-start: {{ row.depth }}rem;">
+      <div class="tree-title">
+        <span class="tree-code">{{ row.node.code }}</span> — {{ row.node.title }}
+        <span class="type-tag">{{ row.node.node_type|node_type_label }}</span>
+      </div>
+      {% if row.node.body %}<div class="tree-desc">{{ row.node.body }}</div>{% endif %}
+      <div class="badge-row" style="margin-block-start:4px;">
+        {% if row.node.is_selected %}
+          <span class="badge badge-info">مختار</span>
+        {% else %}
+          <span class="badge badge-muted">سياق</span>
+        {% endif %}
+        {% if row.node.origin %}<span class="badge {{ row.node.origin|origin_badge }}">{{ row.node.origin|origin_label }}</span>{% endif %}
+        {% if row.node.is_excluded %}<span class="badge badge-draft">مستبعد</span>{% endif %}
+        {% if row.node.baseline_scope_locked %}<span class="badge badge-ok">قيد نطاق أساسي</span>{% endif %}
+        {% if row.node.baseline_completion_required %}<span class="badge badge-warn">متطلب أساسي</span>{% endif %}
+        {% if row.scope_locked and not row.node.baseline_scope_locked %}<span class="badge badge-ok">قيد نطاق (تكليف)</span>{% endif %}
+        {% if row.completion_required and not row.node.baseline_completion_required %}<span class="badge badge-warn">متطلب إتمام (تكليف)</span>{% endif %}
+        {% if row.node.is_completable %}<span class="badge badge-muted">قابل للإنجاز</span>{% endif %}
+      </div>
+    </div>
+    <div class="tree-actions">
+      {% if not row.node.is_selected or row.node.is_excluded %}
+        <form method="post" action="{% url 'visits:scope_select' visit.pk row.node.pk %}" class="inline-form">{% csrf_token %}
+          <button class="btn btn-quiet btn-sm" type="submit">اختيار</button>
+        </form>
+      {% else %}
+        <form method="post" action="{% url 'visits:scope_deselect' visit.pk row.node.pk %}" class="inline-form">{% csrf_token %}
+          <button class="btn btn-quiet btn-sm" type="submit">إزالة من النطاق</button>
+        </form>
+      {% endif %}
+      {% if row.node.is_excluded %}
+        <form method="post" action="{% url 'visits:scope_restore' visit.pk row.node.pk %}" class="inline-form">{% csrf_token %}
+          <button class="btn btn-quiet btn-sm" type="submit">استرجاع</button>
+        </form>
+      {% else %}
+        <form method="post" action="{% url 'visits:scope_exclude' visit.pk row.node.pk %}" class="inline-form">{% csrf_token %}
+          <button class="btn btn-quiet btn-sm" type="submit">استبعاد</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-2" style="margin-block-start:16px;">
+  <div class="card">
+    <h2>إضافة محتوى محلي</h2>
+    <p class="text-soft">يبقى هذا المحتوى داخل الزيارة ولا يُرسل تلقائيًا إلى الإدارة.</p>
+    <form method="post" action="{% url 'visits:local_node_create' visit.pk %}" novalidate>
+      {% csrf_token %}
+      {% for field in local_form %}
+        <div class="form-row">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <div class="form-actions"><button class="btn" type="submit">إضافة</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>الأدلة المتاحة</h2>
+    <p class="text-soft">
+      الدليل اقتراح اختياري: يضيف ما هو غير موجود فقط، ولا يقفل شيئًا ولا يجعل أي عنصر متطلب إتمام.
+    </p>
+    {% if available_guides %}
+      <ul class="item-list">
+        {% for guide in available_guides %}
+        <li>
+          <div class="item-title">{{ guide.title }}</div>
+          {% if guide.description %}<div class="item-meta">{{ guide.description }}</div>{% endif %}
+          <div class="item-meta">{{ guide.targets.count }} عنصرًا مقترحًا</div>
+          <div style="margin-block-start:8px;">
+            {% if guide.pk in applied_guide_ids %}
+              <span class="badge badge-ok">مطبَّق</span>
+              <form method="post" action="{% url 'governance:guide_apply' visit.pk guide.pk %}" class="inline-form" style="margin-block-start:6px;">{% csrf_token %}
+                <button class="btn btn-quiet btn-sm" type="submit">إعادة التطبيق (لا تكرار)</button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'governance:guide_apply' visit.pk guide.pk %}" class="inline-form">{% csrf_token %}
+                <button class="btn btn-quiet btn-sm" type="submit">تطبيق الدليل</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">لا توجد أدلة منشورة مرتبطة بمرجع هذه الزيارة.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

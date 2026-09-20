@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}تكليفاتي{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">تكليفاتي</h1>
+    <p class="page-sub">التكليفات الرسمية الصادرة إليك. المسودات الإدارية غير المرئية لا تظهر هنا.</p>
+  </div>
+</div>
+
+{% if assignments %}
+  {% for assignment in assignments %}
+  <div class="card">
+    <div class="card-head">
+      <h2>{{ assignment.title }}</h2>
+      <span class="badge badge-ok">صادر</span>
+    </div>
+    <p class="text-soft">
+      الزيارة: <a href="{% url 'visits:detail' assignment.visit.pk %}">{{ assignment.visit.title }}</a>
+      — {{ assignment.visit.institution_name_snapshot|default:assignment.visit.institution.name }}
+    </p>
+    {% if assignment.instruction %}<p>{{ assignment.instruction }}</p>{% endif %}
+    <div class="item-meta">أصدره {{ assignment.issued_by }} في {{ assignment.issued_at|ardatetime }}</div>
+    <ul class="item-list">
+      {% for entry in assignment.entries.all %}
+      <li>
+        <span class="tree-code">{{ entry.target_node.code }}</span> — {{ entry.target_node.title }}
+        {% if entry.scope_locked %}<span class="badge badge-info">قيد نطاق</span>{% endif %}
+        {% if entry.completion_required %}<span class="badge badge-warn">متطلب إتمام</span>{% endif %}
+        {% if entry.note %}<div class="item-meta">{{ entry.note }}</div>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty">لا توجد تكليفات صادرة إليك حاليًا.</div>
+{% endif %}
+{% endblock %}
